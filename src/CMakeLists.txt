@@ -2,6 +2,7 @@ add_executable(iot-proji
 	main.cpp
 
 	mpu6050.cpp
+	stepper.cpp
 )
 
 target_link_libraries(iot-proji
