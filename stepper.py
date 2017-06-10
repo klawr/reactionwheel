@@ -7,8 +7,8 @@ A=238
 B=236
 C=233
 D=231
-time=0.001
-max=2000
+time=0.01
+max=200
 
 wpi.pinMode(A, 1)
 wpi.pinMode(B, 1)
@@ -71,7 +71,7 @@ a = [Step1,Step2,Step3,Step4,Step5,Step6,Step7,Step8]
 
 i = 0
 j = 0
-while i <= max:
+while i <= max-1:
     b=a[i%8]
     b()
     if i < max and j==0:
