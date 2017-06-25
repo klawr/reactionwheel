@@ -45,11 +45,11 @@ public:
 	
 	void update();
 
-	vector3 acceleration() const
+	vector3i acceleration() const
 	{
 		return mAcceleration;
 	}
-	vector3 gyro() const
+	vector3i gyro() const
 	{
 		return mGyro;
 	}
@@ -62,8 +62,8 @@ private:
 	std::uint16_t read16u(register_id low_reg, register_id high_reg);
 
 	int mDevice;
-	vector3 mAcceleration;
-	vector3 mGyro;
+	vector3i mAcceleration;
+	vector3i mGyro;
 	int mTemp;
 };
 
