@@ -9,11 +9,25 @@
 #include "mpu6050.h"
 #include "stepper.h"
 #include "vector3.h"
+#include "curses.hpp"
 
 #include <wiringPi.h>
 #include <cmath>
 
 int main()
+{
+	using namespace curses;
+	curses_session csession;
+
+	auto &wnd = csession.session_window();
+	wnd.write("Hello World!");
+	wnd.refresh();
+	wnd.read_key();
+
+	return 0;
+}
+
+int old_main()
 {
 	using namespace std::chrono;
 	using namespace std::literals::chrono_literals;
@@ -104,4 +118,5 @@ int main()
 	//	std:: cout << /* ... */ << std::endl;
 	}
 	driver.Disable();
+	return 0;
 }
