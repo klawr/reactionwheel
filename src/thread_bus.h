@@ -3,8 +3,11 @@
 #include <memory>
 #include <atomic>
 #include <chrono>
+#include <vector>
+#include <functional>
 #include <type_traits>
 
+#include <boost/atomic/atomic.hpp>
 #include <boost/lockfree/spsc_queue.hpp>
 
 #include "vector3.h"
@@ -51,11 +54,20 @@ public:
     }
     bool pop_data(data_point_message &msg)
     {
-        return mDataMsgs.pop(msg);
+        auto av = mDataMsgs.pop(msg);
+        if (av)
+        {
+            mLastReadMessage = msg;
+        }
+        return av;
     }
     int queue_load()
     {
         return mDataMsgs.read_available();
+    }
+    data_point_message last_read_message() const
+    {
+        return mLastReadMessage;
     }
 
     bool stop_flag() const noexcept
@@ -65,11 +77,21 @@ public:
     void stop()
     {
         mStopFlag = true;
+        for (auto stopHook : mStopHooks)
+        {
+            stopHook();
+        }
+    }
+    void register_stop_hook(std::function< void() > hook)
+    {
+        mStopHooks.push_back(hook);
     }
 
 private:
     data_queue_t mDataMsgs;
+    boost::atomic<data_point_message> mLastReadMessage;
     std::atomic<bool> mStopFlag;
+    std::vector< std::function< void() > > mStopHooks;
 };
 
 }

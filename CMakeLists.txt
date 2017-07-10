@@ -11,7 +11,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 # library includes
 
 # boost library
-find_package(Boost REQUIRED)
+find_package(Boost REQUIRED system thread)
 
 # protobuf library
 find_package(Protobuf REQUIRED)

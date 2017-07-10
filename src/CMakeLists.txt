@@ -23,6 +23,8 @@ target_link_libraries(iot-proji
 		${Protobuf_LIBRARIES}
 
 		Boost::boost
+		Boost::system
+		Boost::thread
 )
 target_include_directories(iot-proji
 	PRIVATE

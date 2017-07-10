@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <thread>
+#include <sstream>
 #include <functional>
 
 #include <iostream>
@@ -14,12 +15,15 @@
 #include "frontend.h"
 #include "thread_bus.h"
 
+#include "crow_all.h"
+
 #include <wiringPi.h>
 #include <cmath>
 
 using namespace reactionwheel;
 
 int hw_main(thread_bus &bus);
+void web_main(thread_bus &bus);
 
 int main()
 {
@@ -32,6 +36,7 @@ int main()
 
 	thread_bus bus;
 	std::thread hw_thread(hw_main, std::ref(bus));
+	std::thread web_thread(web_main, std::ref(bus));
 
 	data_point_message data_msg;
 	while (!bus.stop_flag())
@@ -55,6 +60,7 @@ int main()
 	}
 
 	hw_thread.join();
+	web_thread.join();
 	return 0;
 }
 
@@ -75,4 +81,30 @@ int hw_main(thread_bus &bus)
 		//TODO: derive motor action
 	}
 	return 0;
+}
+
+void web_main(thread_bus &bus)
+{
+    crow::logger::setLogLevel(crow::LogLevel::ERROR);
+	crow::SimpleApp webService;
+
+	// pls take a moment to note and embrace the evil that could happen here
+	bus.register_stop_hook([&webService]() { webService.stop(); });
+
+	CROW_ROUTE(webService, "/sensor")([&bus](){
+		const auto data = bus.last_read_message();
+		const auto &accel = data.raw_accelleration;
+		const auto &gyro = data.raw_gyro;
+		std::stringstream fmt;
+		fmt << "{\"acceleration\": ["
+				<< accel.x << "," << accel.y << "," << accel.z
+			<< "],\"gyro\": ["
+				<< gyro.x << "," << gyro.y << "," << gyro.z
+			<< "]}";
+		crow::response res{fmt.str()};
+		res.add_header("Access-Control-Allow-Origin", "*");
+		return res;
+	});
+
+	webService.port(8080).run();
 }
