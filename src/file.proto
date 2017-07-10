@@ -7,9 +7,9 @@ message data_file_meta {
 }
 
 message raw_vector3_data {
-    fixed32 x = 1;
-    fixed32 y = 2;
-    fixed32 z = 3;
+    int32 x = 1;
+    int32 y = 2;
+    int32 z = 3;
 }
 
 message data_piece {

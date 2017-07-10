@@ -7,6 +7,7 @@ add_executable(iot-proji
 	main.cpp
 	curses.cpp
 	frontend.cpp
+	thread_bus.cpp
 
 	mpu6050.cpp
 	stepper.cpp
@@ -20,6 +21,8 @@ target_link_libraries(iot-proji
 		${WIRING_LIBRARY}
 		${CURSES_LIBRARIES}
 		${Protobuf_LIBRARIES}
+
+		Boost::boost
 )
 target_include_directories(iot-proji
 	PRIVATE

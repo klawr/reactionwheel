@@ -10,6 +10,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 ##########################################################################
 # library includes
 
+# boost library
+find_package(Boost REQUIRED)
+
 # protobuf library
 find_package(Protobuf REQUIRED)
 
