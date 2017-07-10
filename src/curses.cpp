@@ -27,12 +27,13 @@ namespace
 {
 
 template<typename T, typename... TArgs>
-inline void curses_call(T callee, const char *errmsg, TArgs... args)
+inline int curses_call(T callee, const char *errmsg, TArgs... args)
 {
-    if (callee(args...) == ERR)
+    if (int rv = callee(args...); rv != ERR)
     {
-        throw curses_error(errmsg);
+        return rv;
     }
+    throw curses_error(errmsg);
 }
 
 }
@@ -81,15 +82,30 @@ void window::move(int line, int col)
 
 int window::read_key()
 {
-    return wgetch(unsafe_handle());
+    auto h = unsafe_handle();
+    curses_call(nodelay, "failed to enable input delay",
+        h, FALSE);
+    
+    return curses_call(wgetch, "failed to wait for an input character",
+        h);
+}
+
+std::tuple<bool, int> window::try_read_key()
+{
+    auto h = unsafe_handle();
+    curses_call(nodelay, "failed to enable input delay",
+        h, TRUE);
+
+    auto val = wgetch(h);
+    auto av = val != ERR;
+    unsigned int mask = -av;
+    return { av, val & mask };
 }
 
 void window::write(const std::string &data)
 {
-    if (waddstr(unsafe_handle(), data.c_str()) == ERR)
-    {
-        throw curses_error("failed to write a string to the window");
-    }
+    curses_call(waddstr, "failed to write a string to the window",
+        unsafe_handle(), data.c_str());
 }
 
 void window::write(char32_t data, attr fmt)
@@ -98,6 +114,12 @@ void window::write(char32_t data, attr fmt)
         = static_cast<chtype>(data) | static_cast<chtype>(fmt);
     
     
+}
+
+void window::write(int line, int col, const std::string &data)
+{
+    move(line, col);
+    write(data);
 }
 
 void window::refresh()
@@ -123,6 +145,7 @@ curses_session::curses_session()
 {
     raw();
     noecho();
+    curs_set(0);
     mSessionWindow.keypad(true);
 }
 

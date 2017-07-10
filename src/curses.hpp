@@ -34,7 +34,7 @@ enum class attr
 };
 
 class curses_error
-    : std::runtime_error
+    : public std::runtime_error
 {
 public:
     explicit curses_error(const char *what_arg)
@@ -65,6 +65,7 @@ public:
     void move(int line, int col);
 
     int read_key();
+    std::tuple<bool, int> try_read_key();
 
     void write(char32_t data, attr fmt = attr::normal);
     void write(const std::string &data);
@@ -85,6 +86,71 @@ private:
     static void destroy(WINDOW *win) noexcept;
 
     std::shared_ptr<WINDOW> mImpl;
+};
+
+class widget
+{
+public:
+    using ptr = std::shared_ptr<widget>;
+
+    widget(int line, int col)
+        : mLine(line)
+        , mCol(col)
+    {
+    }
+
+    virtual void render(window &wnd) = 0;
+
+protected:
+
+    int mLine;
+    int mCol;
+
+private:
+
+
+};
+
+class widget_box
+    : public widget
+{
+public:
+    widget_box(int line, int col, int width)
+        : widget(line, col)
+        , mWidth(width)
+    {
+    }
+
+    template< typename T >
+    void operator()(T content)
+    {
+        mContent = std::to_string(content);
+        adjust_size();
+    }
+    void operator()(std::string content)
+    {
+        mContent = content;
+        adjust_size();
+    }
+
+    virtual void render(window &wnd) override
+    {
+        const auto offset_col = mCol + mWidth - mContent.size();
+        wnd.write(mLine, offset_col, mContent);
+
+    }
+
+private:
+    void adjust_size()
+    {
+        if (mContent.size() > static_cast<std::size_t>(mWidth))
+        {
+            mContent.resize(mWidth);
+        }
+    }
+
+    std::string mContent;
+    int mWidth;
 };
 
 class curses_session 
