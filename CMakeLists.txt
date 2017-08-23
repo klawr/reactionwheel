@@ -19,8 +19,11 @@ find_package(Protobuf REQUIRED)
 # ncurses library
 find_package(Curses REQUIRED)
 
+# cursespp library
+find_package(cursespp REQUIRED)
+
 # wiring library
-find_package(wiring REQUIRED)
+#find_package(wiring REQUIRED)
 
 ##########################################################################
 # compiler adjustments

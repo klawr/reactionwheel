@@ -6,36 +6,43 @@
 #include <cstdint>
 #include <iostream>
 
-#include <wiringPiI2C.h>
+using namespace reactionwheel;
 
-namespace 
+namespace
 {
-	constexpr register_id reg_settings { 0x6B };
-	constexpr register_id reg_accel_x_h { 0x3B };
-	constexpr register_id reg_accel_x_l { 0x3C };
-	constexpr register_id reg_accel_y_h { 0x3D };
-	constexpr register_id reg_accel_y_l { 0x3E };
-	constexpr register_id reg_accel_z_h { 0x3F };
-	constexpr register_id reg_accel_z_l { 0x40 };
-	constexpr register_id reg_temp_h { 0x41 };
-	constexpr register_id reg_temp_l { 0x42 };
-	constexpr register_id reg_gyro_x_h { 0x43 };
-	constexpr register_id reg_gyro_x_l { 0x44 };
-	constexpr register_id reg_gyro_y_h { 0x45 };
-	constexpr register_id reg_gyro_y_l { 0x46 };
-	constexpr register_id reg_gyro_z_h { 0x47 };
-	constexpr register_id reg_gyro_z_l { 0x48 };
+
+constexpr i2c_register reg_settings { 0x6B };
+constexpr i2c_register reg_accel_x_h { 0x3B };
+constexpr i2c_register reg_accel_x_l { 0x3C };
+constexpr i2c_register reg_accel_y_h { 0x3D };
+constexpr i2c_register reg_accel_y_l { 0x3E };
+constexpr i2c_register reg_accel_z_h { 0x3F };
+constexpr i2c_register reg_accel_z_l { 0x40 };
+constexpr i2c_register reg_temp_h { 0x41 };
+constexpr i2c_register reg_temp_l { 0x42 };
+constexpr i2c_register reg_gyro_x_h { 0x43 };
+constexpr i2c_register reg_gyro_x_l { 0x44 };
+constexpr i2c_register reg_gyro_y_h { 0x45 };
+constexpr i2c_register reg_gyro_y_l { 0x46 };
+constexpr i2c_register reg_gyro_z_h { 0x47 };
+constexpr i2c_register reg_gyro_z_l { 0x48 };
+
+constexpr i2c_device_id to_dev_id(mpu6050::id which)
+{
+	switch (which)
+	{
+	case mpu6050::id::m0: return i2c_device_id { 0b1101000 };
+	case mpu6050::id::m1: return i2c_device_id { 0b1101001 };
+	default: throw "illegal mpu6050 id";
+	}
 }
 
-mpu6050::mpu6050(device_id id)
-	: mDevice(wiringPiI2CSetup(id.value()))
+}
+
+mpu6050::mpu6050(std::string_view devicePath, id which)
+	: mDevice(devicePath, to_dev_id(which))
 {
-	if (mDevice == -1)
-	{
-		std::cout << "failed to initialize i2c device " << id.value() << ", errno: " << errno << std::endl;
-		std::exit(-1);
-	}
-	write(reg_settings, 0x00);
+	mDevice.smbus_write_byte(reg_settings, std::byte { 0x00 });
 }
 
 void mpu6050::update()
@@ -49,30 +56,17 @@ void mpu6050::update()
 	mGyro.z = read16(reg_gyro_z_l, reg_gyro_z_h);
 }
 
-std::uint16_t mpu6050::read16u(register_id low_reg, register_id high_reg)
+std::uint16_t mpu6050::read16u(reactionwheel::i2c_register low_reg, reactionwheel::i2c_register high_reg)
 {
-	return static_cast<uint16_t>(read_raw(high_reg)) << 8 | read_raw(low_reg);
+	return static_cast<uint16_t>(read8u(high_reg)) << 8 | read8u(low_reg);
 }
 
-int mpu6050::read16(register_id low_reg, register_id high_reg)
+int mpu6050::read16(reactionwheel::i2c_register low_reg, reactionwheel::i2c_register high_reg)
 {
 	return static_cast<int16_t>(read16u(low_reg, high_reg));
 }
 
-std::uint8_t mpu6050::read_raw(register_id id)
+std::uint8_t mpu6050::read8u(reactionwheel::i2c_register id)
 {
-	auto val = wiringPiI2CReadReg8(mDevice, id.value());
-	if (val < 0)
-	{
-		std::cout << "read reg failed for " << id.value() << ", errno: " << errno << std::endl;
-	}
-	return static_cast<std::uint8_t>(val);
-}
-
-void mpu6050::write(register_id id, std::uint8_t data)
-{
-	if (wiringPiI2CWriteReg8(mDevice, id.value(), data) < 0)
-	{
-		std::cout << "write reg " << id.value() << " failed, data: " << data << ", errno: " << errno << std::endl;
-	}
+	return static_cast<std::uint8_t>(mDevice.smbus_read_byte(id));
 }

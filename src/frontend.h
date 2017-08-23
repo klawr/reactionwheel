@@ -1,12 +1,12 @@
 #pragma once
 
-#include "curses.hpp"
+#include <cursespp/cursespp.hpp>
 #include "vector3.h"
 
-class frontend 
+class frontend
 {
 public:
-    frontend(curses::window &target);
+    frontend(curspp::window &target);
 
     void update_accelleration(vector3i raw);
     void update_gyro(vector3i raw);
@@ -15,5 +15,5 @@ public:
 private:
     inline void put_vec(int line, vector3i raw);
 
-    curses::window &mWnd;
+    curspp::window &mWnd;
 };
