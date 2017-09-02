@@ -248,7 +248,9 @@ void i2c_device::smbus_write_word(i2c_register reg, std::uint16_t value)
 {
     using namespace i2c;
 
-    smbus_packet data { .word = value };
+    smbus_packet data;
+    data.word = value;
+
     smbus_ioctl_data {
         smbus_cmd::write,
         reg.value(),
@@ -261,7 +263,9 @@ std::uint16_t i2c_device::smbus_process_call(i2c_register call_id, std::uint16_t
 {
     using namespace i2c;
 
-    smbus_packet data { .word = value };
+    smbus_packet data;
+    data.word = value;
+
     smbus_ioctl_data {
         smbus_cmd::write,
         call_id.value(),
