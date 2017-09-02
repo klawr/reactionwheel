@@ -10,6 +10,7 @@ add_executable(iot-proji
 
 	i2c.cpp
 	mpu6050.cpp
+	drv10975.cpp
 	#stepper.cpp
 
 	${FILEPROTO_SRCS}
