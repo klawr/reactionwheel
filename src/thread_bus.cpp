@@ -1,3 +1,4 @@
+#include "precompiled.hpp"
 #include "thread_bus.h"
 
 namespace reactionwheel

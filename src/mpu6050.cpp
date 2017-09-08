@@ -1,4 +1,4 @@
-
+#include "precompiled.hpp"
 #include "mpu6050.h"
 
 #include <cerrno>

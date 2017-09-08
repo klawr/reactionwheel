@@ -1,7 +1,5 @@
 #pragma once
 
-#include <intrin.h>
-
 #include <limits>
 
 inline int get_msb_pos(unsigned int data)

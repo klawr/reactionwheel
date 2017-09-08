@@ -1,5 +1,6 @@
 #pragma once
 
+#include "enum_bitset.hpp"
 #include "platform.h"
 #include "i2c.hpp"
 #include "thread_bus.h"
@@ -16,6 +17,7 @@ enum class driver_status_code : std::uint8_t
     over_current = 0b0010'0000,
     motor_locked = 0b0001'0000,
 };
+std::true_type allow_enum_bitset(driver_status_code &&);
 
 enum class motor_fault_code : std::uint8_t
 {
@@ -27,6 +29,8 @@ enum class motor_fault_code : std::uint8_t
     stuck_open_loop   = 0b01'0000,
     stuck_closed_loop = 0b10'0000,
 };
+std::true_type allow_enum_bitset(motor_fault_code &&);
+
 
 struct driver_status_message
     : public bus_message
@@ -81,7 +85,7 @@ public:
     {
         explicit motor_resistance_t(double rOhm);
 
-        constexpr std::bye value() const
+        constexpr std::byte value() const
         {
             return mValue;
         }
@@ -102,9 +106,15 @@ public:
     std::unique_ptr<driver_status_message> read_driver_status();
 
 private:
+    static void init_dir_pin();
+    static void set_dir_pin(bool val);
+
     void motor_param1(bool doubleFrequency, std::byte motor_resistance);
     void motor_param2(bool cycleAdjustmend, std::byte motor_velocity_constant);
     void motor_param3(bool ctrlAdvanceMode, std::byte delay);
+
+    void sys_opt2(std::byte raw);
+    std::byte sys_opt2();
 
     void cmd_begin()
     {

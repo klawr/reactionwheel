@@ -141,6 +141,11 @@ private:
 
 class frontend
 {
+    enum class page
+    {
+        p1 = 0,
+        stats,
+    };
 public:
     frontend(curspp::window &target);
 
@@ -202,6 +207,7 @@ private:
     page1 mPage1;
     driver_stats_page mDriverPage;
     std::function<void()> mRenderFunc;
+    page mDisplayedPage = page::p1;
 
     //text_box 
 };

@@ -1,3 +1,4 @@
+#include "precompiled.hpp"
 #include "drv10975.hpp"
 
 #include <cassert>
@@ -10,6 +11,7 @@ namespace reactionwheel
 namespace
 {
 
+/*
 std::byte encode_drv_floating_point(unsigned int value)
 {
     int msb = get_msb_pos(value);
@@ -45,28 +47,61 @@ std::byte encode_delay_time(std::chrono::microseconds delay)
 {
     using namespace std::chrono;
     using namespace std::chrono_literals;
-    auto dscrt = duration_cast<microseconds>(delay / 2500ns);
-    auto uidscrt = static_cast<unsigned int>(dscrt.count());
+    auto nsdscrt = nanoseconds { delay / 2500ns };
+    auto uidscrt = static_cast<unsigned int>(nsdscrt.count());
     return uidscrt
         ? encode_drv_floating_point(uidscrt)
         : std::byte{0};
 }
+*/
+
+constexpr i2c_register motor_param1_rid { 0x20 };
+constexpr i2c_register motor_param2_rid { 0x21 };
+constexpr i2c_register motor_param3_rid { 0x22 };
+constexpr i2c_register sys_opt1_rid { 0x23 };
+constexpr i2c_register sys_opt2_rid { 0x24 };
+constexpr i2c_register sys_opt3_rid { 0x25 };
+constexpr i2c_register sys_opt4_rid { 0x26 };
+constexpr i2c_register sys_opt5_rid { 0x27 };
+constexpr i2c_register sys_opt6_rid { 0x28 };
+constexpr i2c_register sys_opt7_rid { 0x29 };
+constexpr i2c_register sys_opt8_rid { 0x2A };
+constexpr i2c_register sys_opt9_rid { 0x2B };
+
 
 }
 
+/*
 drv10975::motor_resistance_t::motor_resistance_t(double rOhm)
     : mValue(encode_motor_resistance(rOhm))
 {
 }
+*/
 
 drv10975::drv10975(std::string_view device)
     : mDevice(device, i2c_device_id{ 0b101'0010 })
 {
     mDevice.smbus_write_byte(i2c_register{ 0x03 }, std::byte{0b1100'0000});
-    motor_param1(true, std::byte{0b0100'0000});
-    motor_param2(false, std::byte{0b0100'1001});
-    //motor_param3(true, std::byte)
     speed(0);
+
+    init_dir_pin();
+    set_dir_pin(true);
+
+    motor_param1(false, std::byte{0b011'1010});
+    motor_param2(false, std::byte{0x29});//1C
+    motor_param3(true, std::byte{0xff});
+    //sys_opt2(std::byte{0b11'100'111});
+
+    mDevice.smbus_write_byte(sys_opt1_rid, std::byte{0b00'00'1'1'00});
+    mDevice.smbus_write_byte(sys_opt2_rid, std::byte{0b11'000'000});
+    mDevice.smbus_write_byte(sys_opt3_rid, std::byte{0b11'111'100});
+    mDevice.smbus_write_byte(sys_opt4_rid, std::byte{0b10010'011});//10010'111
+    mDevice.smbus_write_byte(sys_opt5_rid, std::byte{0b00000101});
+    mDevice.smbus_write_byte(sys_opt6_rid, std::byte{0b0000'010'0});
+    mDevice.smbus_write_byte(sys_opt7_rid, std::byte{0b1'000'1000});
+    mDevice.smbus_write_byte(sys_opt8_rid, std::byte{0b0000'0'1'11});
+    mDevice.smbus_write_byte(sys_opt9_rid, std::byte{0b01'11'11'0'0});
+
 }
 drv10975::~drv10975()
 {
@@ -180,6 +215,13 @@ void drv10975::motor_param3(bool ctrlAdvanceMode, std::byte delay)
     auto reg = std::byte{ctrlAdvanceMode} << 7 | (mp_mask & delay);
     cmd_begin();
     mDevice.smbus_write_byte(i2c_register{ 0x22 }, reg);
+    cmd_end();
+}
+
+void drv10975::sys_opt2(std::byte raw)
+{
+    cmd_begin();
+    mDevice.smbus_write_byte(sys_opt2_rid, raw);
     cmd_end();
 }
 

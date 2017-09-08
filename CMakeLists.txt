@@ -7,6 +7,9 @@ endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
+include(cotire)
+
+
 ##########################################################################
 # library includes
 
@@ -23,7 +26,7 @@ find_package(Curses REQUIRED)
 find_package(cursespp REQUIRED)
 
 # wiring library
-#find_package(wiring REQUIRED)
+find_package(wiring REQUIRED)
 
 ##########################################################################
 # compiler adjustments

@@ -1,3 +1,4 @@
+#include "precompiled.hpp"
 #include "i2c.hpp"
 
 #include <cerrno>

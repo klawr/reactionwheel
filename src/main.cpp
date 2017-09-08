@@ -1,5 +1,7 @@
+#include "precompiled.hpp"
 
 #include <cstdio>
+#include <cmath>
 
 #include <chrono>
 #include <thread>
@@ -16,16 +18,18 @@
 #include "frontend.h"
 #include "thread_bus.h"
 
-#include <cmath>
-
 using namespace reactionwheel;
 using namespace std::string_view_literals;
+
+extern "C" int wiringPiSetup();
 
 int sensor_main(message_port frontendPort, message_port motorPort);
 int motor_main(message_port frontendPort, message_port motorPort);
 
 int main()
 {
+	wiringPiSetup();
+
 	using namespace curspp;
 	curses_session csession;
 	curses_session::raw(true);
@@ -111,11 +115,11 @@ int motor_main(message_port frontendPort, message_port motorPort)
 	try
 	{
 		drv10975 motor { "/dev/i2c-2"sv };
-		motor.speed(400);
+		motor.speed(25);
 
 		while (!stopped())
 		{
-			motor.speed(400);
+			//motor.speed(200);
 			
 			frontendPort.post(motor.read_driver_status());
 		}
