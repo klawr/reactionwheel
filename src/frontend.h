@@ -5,6 +5,7 @@
 #include <cursespp/cursespp.hpp>
 #include "vector3.h"
 #include "drv10975.hpp"
+#include "console_parser.hpp"
 
 class box
 {
@@ -208,6 +209,8 @@ private:
     driver_stats_page mDriverPage;
     std::function<void()> mRenderFunc;
     page mDisplayedPage = page::p1;
+
+    std::string mCurrentCmdContent;
 
     //text_box 
 };

@@ -31,24 +31,24 @@ bool frontend::live()
     {
         if (auto cptr = std::get_if<char32_t>(&value))
         {
-            switch (*cptr)
+        }
+        else if (auto fptr = std::get_if<curspp::function_key>(&value))
+        {
+            auto fkey = *fptr;
+            if (fkey == curspp::function_key::f1)
             {
-            case U'q':
-                stop();
-                return false;
-
-            case U'1':
                 mPage1.render(true);
                 mDisplayedPage = page::p1;
-                break;
-
-            case U'2':
+            }
+            else if (fkey == curspp::function_key::f2)
+            {
                 mDriverPage.render(true);
                 mDisplayedPage = page::stats;
-                break;
-
-            default:
-                break;
+            }
+            else if (fkey == curspp::function_key::f9)
+            {
+                stop();
+                return false;
             }
         }
     }
@@ -78,10 +78,16 @@ void frontend::update_stopped()
 {
     std::string txt = std::string{to_string(reactionwheel::stopped())};
 
-    mPage1.mAppStopped.value(txt);
-    mPage1.mAppStopped.render(false);
-    mDriverPage.mAppStopped.value(std::move(txt));
-    mDriverPage.mAppStopped.render(false);
+    if (mDisplayedPage == page::p1)
+    {
+        mPage1.mAppStopped.value(txt);
+        mPage1.mAppStopped.render(false);
+    }
+    if (mDisplayedPage == page::stats)
+    {
+        mDriverPage.mAppStopped.value(std::move(txt));
+        mDriverPage.mAppStopped.render(false);
+    }
 }
 
 void frontend::update_queue_load(int load)
