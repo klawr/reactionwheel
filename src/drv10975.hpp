@@ -77,10 +77,29 @@ struct driver_options_message
     bool ignore_motor_faults;
 };
 
+struct change_speed_message
+    : public bus_message
+{
+    int value;
+};
+
 
 class drv10975
 {
 public:
+    static constexpr i2c_register motor_param1_rid { 0x20 };
+    static constexpr i2c_register motor_param2_rid { 0x21 };
+    static constexpr i2c_register motor_param3_rid { 0x22 };
+    static constexpr i2c_register sys_opt1_rid { 0x23 };
+    static constexpr i2c_register sys_opt2_rid { 0x24 };
+    static constexpr i2c_register sys_opt3_rid { 0x25 };
+    static constexpr i2c_register sys_opt4_rid { 0x26 };
+    static constexpr i2c_register sys_opt5_rid { 0x27 };
+    static constexpr i2c_register sys_opt6_rid { 0x28 };
+    static constexpr i2c_register sys_opt7_rid { 0x29 };
+    static constexpr i2c_register sys_opt8_rid { 0x2A };
+    static constexpr i2c_register sys_opt9_rid { 0x2B };
+
     struct motor_resistance_t
     {
         explicit motor_resistance_t(double rOhm);
@@ -102,6 +121,11 @@ public:
         return static_cast<short>(mSpeedCtrl2 & 0b1) << 8 | mSpeedCtrl1;
     }
     void speed(short speed);
+
+    void swallow(const i2c_reg8_override_message &omsg)
+    {
+        mDevice.write(omsg);
+    }
 
     std::unique_ptr<driver_status_message> read_driver_status();
 

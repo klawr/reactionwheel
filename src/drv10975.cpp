@@ -55,19 +55,6 @@ std::byte encode_delay_time(std::chrono::microseconds delay)
 }
 */
 
-constexpr i2c_register motor_param1_rid { 0x20 };
-constexpr i2c_register motor_param2_rid { 0x21 };
-constexpr i2c_register motor_param3_rid { 0x22 };
-constexpr i2c_register sys_opt1_rid { 0x23 };
-constexpr i2c_register sys_opt2_rid { 0x24 };
-constexpr i2c_register sys_opt3_rid { 0x25 };
-constexpr i2c_register sys_opt4_rid { 0x26 };
-constexpr i2c_register sys_opt5_rid { 0x27 };
-constexpr i2c_register sys_opt6_rid { 0x28 };
-constexpr i2c_register sys_opt7_rid { 0x29 };
-constexpr i2c_register sys_opt8_rid { 0x2A };
-constexpr i2c_register sys_opt9_rid { 0x2B };
-
 
 }
 
@@ -87,18 +74,18 @@ drv10975::drv10975(std::string_view device)
     init_dir_pin();
     set_dir_pin(true);
 
-    motor_param1(false, std::byte{0b011'1010});
-    motor_param2(false, std::byte{0x29});//1C
-    motor_param3(true, std::byte{0xff});
-    //sys_opt2(std::byte{0b11'100'111});
+    
+    motor_param1(true, std::byte{0b011'1010});
+    motor_param2(false, std::byte{0x3F});//1C
+    motor_param3(true, std::byte{0x00});
 
-    mDevice.smbus_write_byte(sys_opt1_rid, std::byte{0b00'00'1'1'00});
-    mDevice.smbus_write_byte(sys_opt2_rid, std::byte{0b11'000'000});
-    mDevice.smbus_write_byte(sys_opt3_rid, std::byte{0b11'111'100});
-    mDevice.smbus_write_byte(sys_opt4_rid, std::byte{0b10010'011});//10010'111
-    mDevice.smbus_write_byte(sys_opt5_rid, std::byte{0b00000101});
-    mDevice.smbus_write_byte(sys_opt6_rid, std::byte{0b0000'010'0});
-    mDevice.smbus_write_byte(sys_opt7_rid, std::byte{0b1'000'1000});
+    mDevice.smbus_write_byte(sys_opt1_rid, std::byte{0b00'00'1'1'11});
+    mDevice.smbus_write_byte(sys_opt2_rid, std::byte{0b11'001'111});
+    mDevice.smbus_write_byte(sys_opt3_rid, std::byte{0b11'111'101});
+    mDevice.smbus_write_byte(sys_opt4_rid, std::byte{0b10010'100});//10010'111
+    mDevice.smbus_write_byte(sys_opt5_rid, std::byte{0b00000001});
+    mDevice.smbus_write_byte(sys_opt6_rid, std::byte{0b0000'111'0});
+    mDevice.smbus_write_byte(sys_opt7_rid, std::byte{0b1'000'1001});
     mDevice.smbus_write_byte(sys_opt8_rid, std::byte{0b0000'0'1'11});
     mDevice.smbus_write_byte(sys_opt9_rid, std::byte{0b01'11'11'0'0});
 
@@ -110,6 +97,12 @@ drv10975::~drv10975()
 
 void drv10975::speed(short speed)
 {
+    set_dir_pin(speed >= 0);
+    if (speed < 0)
+    {
+        speed = -speed;
+    }
+
     assert(0 <= speed && speed <= 511);
     mSpeedCtrl1 = static_cast<std::uint8_t>(speed);
     mSpeedCtrl2 = 0b1000'0000 | ((static_cast<std::uint16_t>(speed) >> 8) & 0b1);

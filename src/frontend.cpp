@@ -1,7 +1,14 @@
 #include "precompiled.hpp"
 #include "frontend.h"
 
-#include "thread_bus.h"
+#include <cmath>
+#include <unordered_map>
+
+#include <boost/math/constants/constants.hpp>
+
+#include <ucmd-parser/all.hpp>
+
+#include "drv10975.hpp"
 
 namespace
 {
@@ -11,26 +18,95 @@ constexpr std::string_view to_string(bool value)
     return {value ? "true" : "false"};
 }
 
+std::unordered_map<std::string, reactionwheel::i2c_register> drv10975_regmap {
+    { "mparam1", reactionwheel::drv10975::motor_param1_rid },
+    { "mparam2", reactionwheel::drv10975::motor_param2_rid },
+    { "mparam3", reactionwheel::drv10975::motor_param3_rid },
+    { "sopt1", reactionwheel::drv10975::sys_opt1_rid },
+    { "sopt2", reactionwheel::drv10975::sys_opt2_rid },
+    { "sopt3", reactionwheel::drv10975::sys_opt3_rid },
+    { "sopt4", reactionwheel::drv10975::sys_opt4_rid },
+    { "sopt5", reactionwheel::drv10975::sys_opt5_rid },
+    { "sopt6", reactionwheel::drv10975::sys_opt6_rid },
+    { "sopt7", reactionwheel::drv10975::sys_opt7_rid },
+    { "sopt8", reactionwheel::drv10975::sys_opt8_rid },
+    { "sopt9", reactionwheel::drv10975::sys_opt9_rid },
+};
+
 }
 
 using namespace curspp;
 using namespace reactionwheel;
 
-frontend::frontend(curspp::window &target)
+frontend::frontend(curspp::window &target, message_port &motorPort)
     : mWnd(target)
+    , mMotorPort(motorPort)
+    , mLastUpdate(std::chrono::steady_clock::now())
     , mPage1(mWnd)
     , mDriverPage(mWnd)
+    , mCmdInput(target, { 0, target.size().y - 1 }, target.size().x)
 {
+    //color_pair(1).value(color::green(), color::default_());
+    mEval.insert("motor speed", ucmdp::make_command([this](int spdvalue)
+    {
+        auto msg = std::make_unique<change_speed_message>();
+        msg->value = spdvalue;
+        mMotorPort.post(std::move(msg));
+    }));
+    mEval.insert("set byte reg", ucmdp::make_command([this](std::string regName, std::byte value)
+    {
+        if (auto regIt = drv10975_regmap.find(regName);
+            regIt != drv10975_regmap.end())
+        {
+            auto msg = std::make_unique<i2c_reg8_override_message>(
+                std::tuple{regIt->second, value}
+            );
+            mMotorPort.post(std::move(msg));
+        }
+    }));
+    mEval.insert("set word reg", ucmdp::make_command([this](std::string regName, std::byte v1, std::byte v2)
+    {
+        
+    }));
+    mEval.insert("stop", ucmdp::make_command([]() { stop(); }));
 }
 
 bool frontend::live()
 {
+    using namespace std::chrono;
+    using namespace std::chrono_literals;
+
+    auto now = steady_clock::now();
+    if (now - mLastUpdate < 15ms)
+    {
+        return true;
+    }
+    mLastUpdate = now;
+
     update_stopped();
+    mWnd.move_cursor({0, 0});
     mWnd.refresh();
     if (const auto [flag, value] = mWnd.try_read_key(); flag)
     {
-        if (auto cptr = std::get_if<char32_t>(&value))
+        if (auto cptr = std::get_if<char32_t>(&value);
+                cptr && *cptr > 0 && *cptr < 128)
         {
+            auto c = static_cast<char>(*cptr);
+            if (c == '\n')
+            {
+                try
+                {
+                    mEval(mCmdInput.content_view());
+                }
+                catch (...)
+                {
+                }
+                mCmdInput.clear();
+            }
+            else
+            {
+                mCmdInput.append(c);
+            }
         }
         else if (auto fptr = std::get_if<curspp::function_key>(&value))
         {
@@ -50,9 +126,17 @@ bool frontend::live()
                 stop();
                 return false;
             }
+            else if (fkey == curspp::function_key::backspace)
+            {
+                mCmdInput.pop_back();
+            }
+            else if (fkey == curspp::function_key::enter)
+            {
+
+            }
         }
+        mCmdInput.render();
     }
-    //mWnd.refresh();
     return true;
 }
 
@@ -62,6 +146,11 @@ void frontend::update_accelleration(vector3i raw)
     {
         mPage1.mAccelDp.value(raw);
         mPage1.mAccelDp.render(false);
+
+        auto angleRad = std::atan(static_cast<double>(raw.x) / raw.y);
+        auto angleDeg = angleRad * 180 / boost::math::double_constants::pi;
+        mPage1.mAngle.value(std::to_string(angleDeg));
+        mPage1.mAngle.render(false);
     }
 }
 
@@ -150,11 +239,12 @@ frontend::page1::page1(curspp::window &wnd)
     , mAccelDp(mWnd, {2, 4}, "accel")
     , mGyroDp(mWnd, {2, 7}, "gyro")
     , mAppStopped(mWnd, "app stopped:", {2, 2}, 12, 6)
+    , mAngle(mWnd, "current angle:", {2, 10}, 14, 7)
 {
     mAccelDp.render(true);
     mGyroDp.render(true);
+    mAngle.render(true);
 
-    mAppStopped.value("false");
     mAppStopped.render(true);
 }
 
@@ -165,6 +255,7 @@ void frontend::page1::render(bool full)
     mAccelDp.render(true);
     mGyroDp.render(true);
     mAppStopped.render(true);
+    mAngle.render(true);
 
     mWnd.refresh(full);
 }

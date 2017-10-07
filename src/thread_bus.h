@@ -97,7 +97,7 @@ public:
         {
             in_queue().try_dequeue(result);
         }
-        return std::move(result);
+        return result;
     }
 
     message_port(const message_port &) = delete;

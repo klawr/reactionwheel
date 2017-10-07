@@ -1,16 +1,18 @@
 #pragma once
 
+#include <chrono>
 #include <string>
 
 #include <cursespp/cursespp.hpp>
+#include <ucmd-parser/command_tree.hpp>
 #include "vector3.h"
 #include "drv10975.hpp"
-#include "console_parser.hpp"
+#include "thread_bus.h"
 
 class box
 {
 public:
-    box(curspp::window target, curspp::vector2i pos, curspp::vector2i size)
+    box(curspp::window &target, curspp::vector2i pos, curspp::vector2i size)
         : mTarget(target)
         , mPosition(pos)
         , mSize(size)
@@ -68,9 +70,22 @@ public:
     {
     }
 
-    void value(std::string v)
+    std::string_view value()
     {
-        mValue = v;
+        return mValue;
+    }
+    void value(std::string_view v)
+    {
+        if (v.size() >= static_cast<size_t>(mValueSpace))
+        {
+            mValue.replace(0, mValue.size(), v.substr(0, mValueSpace));
+        }
+        else
+        {
+            mValue.clear();
+            mValue.insert(0, mValueSpace - v.size(), ' ');
+            mValue.append(v);
+        }
     }
 
     void render(bool full)
@@ -80,13 +95,9 @@ public:
             auto lpos = mPosition + curspp::vector2i{mLabelSpace - static_cast<int>(mLabel.size()), 0};
             mTarget.write(lpos, mLabel);
         }
-        auto vpos = mPosition + curspp::vector2i{mLabelSpace + mValueSpace - static_cast<int>(mValue.size()), 0};
-        for (curspp::vector2i i = mPosition + curspp::vector2i{mLabelSpace, 0};
-             i.x < vpos.x; ++i.x)
-        {
-            mTarget.write(i, U' ');
-        }
-        mTarget.write(vpos, mValue);
+        auto vpos = mPosition;
+        vpos.x += mLabelSpace;
+        mTarget.write(vpos, mValue, curspp::attr::normal, curspp::color_pair{0});
     }
 
 private:
@@ -96,6 +107,74 @@ private:
     curspp::vector2i mPosition;
     int mLabelSpace;
     int mValueSpace;
+};
+
+class input_field
+{
+public:
+    input_field(curspp::window &target, curspp::vector2i pos, int size)
+        : mTarget(target)
+        , mContent()
+        , mPosition(pos)
+        , mSize(size)
+        , mContentOffset(0)
+    {
+    }
+
+    std::string_view content_view() const
+    {
+        return mContent;
+    }
+
+    void append(char c)
+    {
+        mContent.push_back(c);
+        if (mContent.size() >= static_cast<size_t>(mSize))
+        {
+            ++mContentOffset;
+        }
+    }
+
+    void pop_back()
+    {
+        if (!mContent.empty())
+        {
+            if (mContent.size() >= static_cast<size_t>(mSize))
+            {
+                --mContentOffset;
+            }
+            mContent.pop_back();
+        }
+    }
+
+    void clear()
+    {
+        mContent.clear();
+        mContentOffset = 0;
+    }
+
+    void render()
+    {
+        auto drawRange = static_cast<std::string_view>(mContent)
+            .substr(mContentOffset);
+        mTarget.write(mPosition, drawRange);
+        if (mContent.size() < static_cast<size_t>(mSize - 1))
+        {
+            for (auto i = curspp::vector2i{static_cast<int>(mContent.size()), 0};
+                i.x < mSize - 1; ++i.x)
+            {
+                mTarget.write(mPosition + i, U' ');
+            }
+        }
+    }
+
+private:
+    curspp::window &mTarget;
+    std::string mContent;
+    curspp::vector2i mPosition;
+    int mSize;
+    int mContentOffset;
+    bool mNeedsRedraw;
 };
 
 class vector_display
@@ -148,7 +227,7 @@ class frontend
         stats,
     };
 public:
-    frontend(curspp::window &target);
+    frontend(curspp::window &target, reactionwheel::message_port &motorPort);
 
     bool live();
 
@@ -172,6 +251,8 @@ private:
         vector_display mAccelDp;
         vector_display mGyroDp;
         text_box mAppStopped;
+
+        text_box mAngle;
     };
 
     class driver_stats_page
@@ -204,13 +285,17 @@ private:
     };
 
     curspp::window &mWnd;
+    reactionwheel::message_port &mMotorPort;
+
+    ucmdp::command_tree mEval;
+
+    std::chrono::steady_clock::time_point mLastUpdate;
 
     page1 mPage1;
     driver_stats_page mDriverPage;
     std::function<void()> mRenderFunc;
     page mDisplayedPage = page::p1;
-
-    std::string mCurrentCmdContent;
+    input_field mCmdInput;
 
     //text_box 
 };

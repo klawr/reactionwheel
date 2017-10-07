@@ -18,3 +18,5 @@
 #include <type_traits>
 
 #include <cursespp/cursespp.hpp>
+
+#include <ucmd-parser/all.hpp>

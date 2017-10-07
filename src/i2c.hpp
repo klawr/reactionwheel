@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <vector>
 #include <string_view>
+#include <initializer_list>
+
+#include "thread_bus.h"
 
 namespace reactionwheel
 {
@@ -40,6 +43,23 @@ public:
 
 private:
     const std::uint8_t mValue;
+};
+
+struct i2c_reg8_override_message
+    : public bus_message
+{
+    using data_pair = std::tuple< i2c_register, std::byte >;
+
+    i2c_reg8_override_message(data_pair data)
+        : i2c_reg8_override_message({ data })
+    {
+    }
+    i2c_reg8_override_message(std::initializer_list<data_pair> il)
+        : register_values(std::move(il))
+    {
+    }
+
+    std::vector< data_pair > register_values;
 };
 
 class i2c_device
@@ -86,6 +106,14 @@ public:
         block_t out;
         smbus_block_process_call(call_id, in, out);
         return out;
+    }
+
+    void write(const i2c_reg8_override_message &msg)
+    {
+        for (const auto &[reg, val] : msg.register_values)
+        {
+            smbus_write_byte(reg, val);
+        }
     }
 
 private:
