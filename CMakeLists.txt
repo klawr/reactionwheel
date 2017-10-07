@@ -25,6 +25,9 @@ find_package(Curses REQUIRED)
 # cursespp library
 find_package(cursespp REQUIRED)
 
+# cmd-tree-parser
+find_package(cmd-tree-parser REQUIRED)
+
 # wiring library
 find_package(wiring REQUIRED)
 

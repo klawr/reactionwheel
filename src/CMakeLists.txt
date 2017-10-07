@@ -28,6 +28,7 @@ target_link_libraries(iot-proji
 
 		Boost::boost
 		cursespp
+		cmd-tree-parser
 )
 target_include_directories(iot-proji
 	PRIVATE
